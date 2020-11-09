@@ -1,0 +1,72 @@
+{
+  "private": "true",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@daisy/jest-env-puppeteer": "^1.0.0",
+    "@daisy/jest-puppeteer": "^1.0.0",
+    "babel-core": "^6.0.0",
+    "babel-jest": "^21.2.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-register": "^6.26.0",
+    "chalk": "^2.3.0",
+    "cross-env": "^5.2.0",
+    "cross-spawn": "^5.1.0",
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb-base": "^11.2.0",
+    "eslint-plugin-import": "^2.3.0",
+    "glob": "^7.1.2",
+    "i18next-json-sync": "^2.3.1",
+    "jest": "21.3.0-beta.10",
+    "lerna": "2.8",
+    "micromatch": "^3.1.4",
+    "mkdirp": "^0.5.1",
+    "rimraf": "^2.6.1",
+    "snyk": "^1.56.0",
+    "standard-version": "^4.2.0",
+    "strip-ansi": "^4.0.0",
+    "uglify-js": "^3.0.8",
+    "watch": "^1.0.2"
+  },
+  "scripts": {
+    "start":"node clean.js && ace --outdir reports $FILEPATH && node report-modify.js $FILENAME",
+    "ace-report-modifier": "ace --outdir",
+    "ace": "node ./packages/ace-cli/bin/ace.js",
+    "clean": "yarn run clean-libs",
+    "clean-libs": "rimraf packages/*/lib",
+    "clean-node-modules": "rimraf packages/*/node_modules && rimraf node_modules",
+    "clean-all": "yarn run clean-libs && yarn run clean-node-modules",
+    "prebuild": "yarn run clean-libs",
+    "build": "cross-env VERBOSE=1 node ./scripts/build.js",
+    "docs": "echo docs script not implemented",
+    "lint": "echo lint script not implemented",
+    "postinstall": "yarn run build",
+    "test": "jest",
+    "watch": "yarn run build && node ./scripts/watch.js",
+    "i18n-sort": "node ./scripts/locales-sort.js",
+    "i18n-scan-ace-report": "node ./scripts/translate-scan.js \"packages/ace-report/src\" \"packages/ace-report/src/l10n/locales/temp.json\" && sync-i18n --files 'packages/ace-report/src/l10n/locales/*.json' --primary temp --languages en fr pt_BR es da --space 4 --finalnewline --newkeysempty && rimraf \"packages/ace-report/src/l10n/locales/temp.json\"",
+    "i18n-scan-ace-report-axe": "node ./scripts/translate-scan.js \"packages/ace-report-axe/src\" \"packages/ace-report-axe/src/l10n/locales/temp.json\" && sync-i18n --files 'packages/ace-report-axe/src/l10n/locales/*.json' --primary temp --languages en fr pt_BR es da --space 4 --finalnewline --newkeysempty && rimraf \"packages/ace-report-axe/src/l10n/locales/temp.json\"",
+    "i18n-scan-ace-core": "node ./scripts/translate-scan.js \"packages/ace-core/src\" \"packages/ace-core/src/l10n/locales/temp.json\" && sync-i18n --files 'packages/ace-core/src/l10n/locales/*.json' --primary temp --languages en fr pt_BR es da --space 4 --finalnewline --newkeysempty && rimraf \"packages/ace-core/src/l10n/locales/temp.json\"",
+    "i18n-scan": "npm run i18n-scan-ace-report && npm run i18n-scan-ace-report-axe && npm run i18n-scan-ace-core",
+    "i18n-check": "sync-i18n --files 'packages/**/src/l10n/locales/*.json' --primary en --languages fr pt_BR es da --space 4 --finalnewline --newkeysempty"
+  },
+  "jest": {
+    "setupTestFrameworkScriptFile": "<rootDir>/tests/jest-setup.js",
+    "testEnvironment": "node"
+  },
+  "dependencies": {
+    "epub": "^1.2.1",
+    "epub-cover-extractor": "^1.0.3",
+    "epub-extract": "^1.0.19",
+    "exif": "^0.6.0",
+    "extract-zip": "^2.0.1",
+    "fs-extra": "^9.0.1",
+    "jquery": "^3.5.1",
+    "jsdom": "^16.2.2",
+    "unzip": "^0.1.11",
+    "unzipper": "^0.10.11",
+    "yarn": "^1.22.4"
+  }
+}
