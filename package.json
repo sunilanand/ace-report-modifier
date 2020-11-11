@@ -58,7 +58,6 @@
   },
   "dependencies": {
     "epub": "^1.2.1",
-    "epub-cover-extractor": "^1.0.3",
     "epub-extract": "^1.0.19",
     "exif": "^0.6.0",
     "extract-zip": "^2.0.1",
