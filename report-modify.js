@@ -276,8 +276,8 @@ var ReportModifier = function () {
                         let location_value = jquery_ref(current_TRS[k]).find(".location").text();
 
                         let trDOM = '';
-                        for(let j=0;j<allImagesXHTML_WIDGET[u]["JSON_IMAGES"].length;j++){
-
+                        for(let j=0;j<allImagesXHTML_WIDGET[u]["JSON_IMAGES"].length;j++)
+                        {
                             trDOM = trDOM + `
                                 <tr>
                                 <td class="image">
@@ -337,7 +337,21 @@ var ReportModifier = function () {
             try {
                 new ExifImage({ image : imagePath }, function (error, exifData) {
                     if (error){
-                        console.log('Error: '+error.message,imagePath);
+                        console.log('NS Error: '+error.message,imagePath);
+
+                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(0)").after(`<td class="missing">NA</td>`)
+
+                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
+
+                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
+
+                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
+
+                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
+
+                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
+                        
+                        updateJSON(imageName,exifData);
                     }else{
                         //console.log(`${imageName} = `,exifData)
 
@@ -361,6 +375,8 @@ var ReportModifier = function () {
                 });
             } catch (error) {
                 console.log('Error: ' + error.message);
+
+                
             }
         }else{
             let file_output = "./reports/new-report.html";
@@ -374,13 +390,22 @@ var ReportModifier = function () {
     function updateJSON(imageName,imgProperties){
         for(let i=0;i<json_report["data"]["images"].length;i++){
             if(json_report["data"]["images"][i]["src"].indexOf(imageName) !== -1){
-                json_report["data"]["images"][i]["imageName"] = imageName;
-                json_report["data"]["images"][i]["AssetId"] = imgProperties["image"] && imgProperties["image"].AssetId? imgProperties["image"].AssetId:"N/A";
-                json_report["data"]["images"][i]["Artist"] = imgProperties["image"] && imgProperties["image"].Artist?imgProperties["image"].Artist:"N/A";
-                json_report["data"]["images"][i]["AuthorTitle"] = imgProperties["image"] && imgProperties["image"].AuthorTitle?imgProperties["image"].AuthorTitle:"N/A"
-                json_report["data"]["images"][i]["ImageDescription"] = imgProperties["image"] && imgProperties["image"].ImageDescription?imgProperties["image"].ImageDescription:"N/A"
-                json_report["data"]["images"][i]["Copyright"] = imgProperties["image"] && imgProperties["image"].Copyright?imgProperties["image"].Copyright:"N/A"
-
+                
+                if (imageName.indexOf('.svg') == -1 && imageName.indexOf('.jpg') == -1 && imageName.indexOf('.jpeg') == -1) {
+                    json_report["data"]["images"][i]["imageName"] = imageName;
+                    json_report["data"]["images"][i]["AssetId"] = imgProperties["image"] && imgProperties["image"].AssetId? imgProperties["image"].AssetId:"N/A";
+                    json_report["data"]["images"][i]["Artist"] = imgProperties["image"] && imgProperties["image"].Artist?imgProperties["image"].Artist:"N/A";
+                    json_report["data"]["images"][i]["AuthorTitle"] = imgProperties["image"] && imgProperties["image"].AuthorTitle?imgProperties["image"].AuthorTitle:"N/A"
+                    json_report["data"]["images"][i]["ImageDescription"] = imgProperties["image"] && imgProperties["image"].ImageDescription?imgProperties["image"].ImageDescription:"N/A"
+                    json_report["data"]["images"][i]["Copyright"] = imgProperties["image"] && imgProperties["image"].Copyright?imgProperties["image"].Copyright:"N/A"
+                }else{
+                    json_report["data"]["images"][i]["imageName"] = imageName;
+                    json_report["data"]["images"][i]["AssetId"] = "N/A";
+                    json_report["data"]["images"][i]["Artist"] = "N/A";
+                    json_report["data"]["images"][i]["AuthorTitle"] = "N/A";
+                    json_report["data"]["images"][i]["ImageDescription"] = "N/A";
+                    json_report["data"]["images"][i]["Copyright"] = "N/A";
+                }
             }
         }
     }
