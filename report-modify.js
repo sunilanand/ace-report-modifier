@@ -409,7 +409,7 @@ var ReportModifier = function () {
             }
         }
     }
-
+ß
     function readJSON(){
         json_report = fs.readFileSync('./reports/report.json');
         json_report = JSON.parse(json_report);
