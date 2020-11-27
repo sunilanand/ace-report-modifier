@@ -5,7 +5,7 @@ const jquery = require('jquery');
 var ExifImage = require('exif').ExifImage;
 const unzipper = require("unzipper");
 var fsExtra = require('fs-extra');
-
+const xmpReader = require('xmp-reader');
 
 
 
@@ -27,6 +27,8 @@ var ReportModifier = function () {
     var nTotalJSONS_In_Single_XHTML = 0;
     var nJSONCounter = 0;
     var jsonsPath = [];
+
+    var propertiesObj = new Object();
     
 
     function init() {
@@ -331,53 +333,61 @@ var ReportModifier = function () {
             let imageName = imagePath;
             // let lastIndex = imageName.lastIndexOf('.');
             // imageName = imageName.substr(0, lastIndex);
-            imageName = imageName.split("/")
-            imageName = String(imageName[imageName.length-1]).trim()
+            imageName = imageName.split("/");
+            imageName = String(imageName[imageName.length-1]).trim();
 
-            try {
+
+            /*
+            XMP Reader:
+            {
+                "raw": {
+                    "MicrosoftPhoto:Rating": "50",
+                    "dc:title": "Title",
+                    "dc:description": "Title",
+                    "dc:creator": "Alexander Kuznetsov",
+                    "Iptc4xmpCore:Location": "New York",
+                    "MicrosoftPhoto:LastKeywordXMP": ["tag1", "tag2"],
+                    "MicrosoftPhoto:LastKeywordIPTC": ["tag1", "tag2"],
+                    "xmp:Rating": "3"
+                },
+                "rating": 3,
+                "title": "Title",
+                "description": "Title",
+                "creator": "Alexander Kuznetsov",
+                "location": "New York",
+                "keywords": ["tag1", "tag2"]
+            }
+            */
+            console.log("imageName>>>>>>>>>>> ",imageName)
+            propertiesObj = new Object();
+            propertiesObj["imageName"] = imageName;
+            propertiesObj["AssetId"] = "N/A";
+            propertiesObj["Artist"] = "N/A";
+            propertiesObj["AuthorTitle"] = "N/A";
+            propertiesObj["ImageDescription"] = "N/A";
+            propertiesObj["Copyright"] = "N/A";
+
+           try {
                 new ExifImage({ image : imagePath }, function (error, exifData) {
                     if (error){
-                        console.log('NS Error: '+error.message,imagePath);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(0)").after(`<td class="missing">NA</td>`)
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="missing">NA</td>`);
-                        
-                        updateJSON(imageName,exifData);
+                        console.log("exifData error");
+                        checkXMPData(imageName, imagePath);
                     }else{
-                        //console.log(`${imageName} = `,exifData)
+                        console.log("exifData> ",exifData)
+                        propertiesObj["AssetId"] = exifData["image"].AssetId? exifData["image"].AssetId : "N/A";
+                        propertiesObj["Artist"] = exifData["image"].Artist? exifData["image"].Artist : "N/A";
+                        propertiesObj["AuthorTitle"] = exifData["image"].AuthorTitle?exifData["image"].AuthorTitle:"N/A";
+                        propertiesObj["ImageDescription"] = exifData["image"].ImageDescription?exifData["image"].ImageDescription:"N/A";
+                        propertiesObj["Copyright"] = exifData["image"].Copyright?exifData["image"].Copyright:"N/A";
 
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(0)").after(`<td>${imageName}</td>`)
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${exifData["image"] && exifData["image"].AssetId? "":"missing"}">${exifData["image"] && exifData["image"].AssetId? exifData["image"].AssetId:"N/A"}</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${exifData["image"] && exifData["image"].Artist?"":"missing"}">${exifData["image"] && exifData["image"].Artist?exifData["image"].Artist:"N/A"}</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${exifData["image"] && exifData["image"].AuthorTitle?"":"missing"}">${exifData["image"] && exifData["image"].AuthorTitle?exifData["image"].AuthorTitle:"N/A"}</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${exifData["image"] && exifData["image"].ImageDescription?"":"missing"}">${exifData["image"] && exifData["image"].ImageDescription?exifData["image"].ImageDescription:"N/A"}</td>`);
-
-                        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${exifData["image"] && exifData["image"].Copyright?"":"missing"}">${exifData["image"] && exifData["image"].Copyright?exifData["image"].Copyright:"N/A"}</td>`);
-                        updateJSON(imageName,exifData);
+                        checkXMPData(imageName, imagePath);
                     }
-
-                    nProcessedCount++;
-                    processImageProperties();
-                        
                 });
             } catch (error) {
-                console.log('Error: ' + error.message);
-
-                
+                console.log('exifData Error: ' + error.message);
+                checkXMPData(imageName, imagePath);
             }
+
         }else{
             let file_output = "./reports/new-report.html";
             fs.writeFile(file_output, dom.serialize(), err => {
@@ -387,17 +397,62 @@ var ReportModifier = function () {
         }
     }
 
-    function updateJSON(imageName,imgProperties){
+    function checkXMPData(imageName, imagePath) {
+        try {
+            xmpReader.fromFile(imagePath, (error, data) => {
+                if (error){
+                    console.log("data error");
+                    updateTableData(imageName);
+                }else{
+                    console.log("data> ",data)
+                    propertiesObj["AssetId"] = data.AssetId? data.AssetId : propertiesObj["AssetId"];
+                    propertiesObj["Artist"] = data.creator? data.creator : propertiesObj["Artist"];
+                    propertiesObj["AuthorTitle"] = data.title? data.title : propertiesObj["AuthorTitle"];
+                    propertiesObj["ImageDescription"] = data.description? data.description : propertiesObj["ImageDescription"];
+                    propertiesObj["Copyright"] = data.Copyright? data.Copyright : propertiesObj["Copyright"];
+
+                    updateTableData(imageName);
+                }
+            });
+        } catch (error) {
+            console.log('data Error: ' + error.message);
+            updateTableData(imageName);
+        }
+    }
+
+    function updateTableData(imageName) {
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(0)").after(`<td>${imageName}</td>`)
+
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["AssetId"]=="N/A"?"":"missing"}">${propertiesObj["AssetId"]}</td>`);
+
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["Artist"]=="N/A"?"":"missing"}">${propertiesObj["Artist"]}</td>`);
+
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["AuthorTitle"]=="N/A"?"":"missing"}">${propertiesObj["AuthorTitle"]}</td>`);
+
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["ImageDescription"]=="N/A"?"":"missing"}">${propertiesObj["ImageDescription"]}</td>`);
+
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["Copyright"]=="N/A"?"":"missing"}">${propertiesObj["Copyright"]}</td>`);
+
+
+        console.log("propertiesObj> ",propertiesObj);
+
+        updateJSON(imageName);
+
+        nProcessedCount++;
+        processImageProperties();
+    }
+
+    function updateJSON(imageName){
         for(let i=0;i<json_report["data"]["images"].length;i++){
             if(json_report["data"]["images"][i]["src"].indexOf(imageName) !== -1){
                 
                 if (imageName.indexOf('.svg') == -1 && imageName.indexOf('.jpg') == -1 && imageName.indexOf('.jpeg') == -1) {
-                    json_report["data"]["images"][i]["imageName"] = imageName;
-                    json_report["data"]["images"][i]["AssetId"] = imgProperties["image"] && imgProperties["image"].AssetId? imgProperties["image"].AssetId:"N/A";
-                    json_report["data"]["images"][i]["Artist"] = imgProperties["image"] && imgProperties["image"].Artist?imgProperties["image"].Artist:"N/A";
-                    json_report["data"]["images"][i]["AuthorTitle"] = imgProperties["image"] && imgProperties["image"].AuthorTitle?imgProperties["image"].AuthorTitle:"N/A"
-                    json_report["data"]["images"][i]["ImageDescription"] = imgProperties["image"] && imgProperties["image"].ImageDescription?imgProperties["image"].ImageDescription:"N/A"
-                    json_report["data"]["images"][i]["Copyright"] = imgProperties["image"] && imgProperties["image"].Copyright?imgProperties["image"].Copyright:"N/A"
+                    json_report["data"]["images"][i]["imageName"] = propertiesObj.imageName;
+                    json_report["data"]["images"][i]["AssetId"] = propertiesObj.AssetId;
+                    json_report["data"]["images"][i]["Artist"] = propertiesObj.Artist;
+                    json_report["data"]["images"][i]["AuthorTitle"] = propertiesObj.AuthorTitle;
+                    json_report["data"]["images"][i]["ImageDescription"] = propertiesObj.ImageDescription;
+                    json_report["data"]["images"][i]["Copyright"] = propertiesObj.Copyright;
                 }else{
                     json_report["data"]["images"][i]["imageName"] = imageName;
                     json_report["data"]["images"][i]["AssetId"] = "N/A";
