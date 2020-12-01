@@ -10,6 +10,8 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+xmp_reader/*
+tests/*
 
 # macOS
 .DS_Store

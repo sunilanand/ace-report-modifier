@@ -5,9 +5,9 @@ const jquery = require('jquery');
 var ExifImage = require('exif').ExifImage;
 const unzipper = require("unzipper");
 var fsExtra = require('fs-extra');
-const xmpReader = require('xmp-reader');
-
-
+const utf8 = require('utf8');
+const ExifReader = require('exifreader');
+var xl = require('excel4node');
 
 var ReportModifier = function () {
     var nProcessedCount = 0;
@@ -29,6 +29,39 @@ var ReportModifier = function () {
     var jsonsPath = [];
 
     var propertiesObj = new Object();
+
+    var xlwb = new xl.Workbook();
+    var xlws = xlwb.addWorksheet('Images Report');
+
+    var hStyle = xlwb.createStyle({
+        font: {
+            color: '#000000',
+            size: 13,
+            bold: true,
+        },
+        alignment: {
+            horizontal: 'center'
+        },
+        border: {
+            outline: true
+        }
+        // numberFormat: '$#,##0.00; ($#,##0.00); -',
+    });
+
+    var bStyle = xlwb.createStyle({
+        font: {
+            color: '#000000',
+            size: 12,
+        },
+        alignment: {
+            shrinkToFit: true,
+            wrapText: true
+        },
+        border: {
+            outline: true
+        }
+        // numberFormat: '$#,##0.00; ($#,##0.00); -',
+    });
     
 
     function init() {
@@ -149,7 +182,6 @@ var ReportModifier = function () {
                 readJSON();
                 tableColumnEdit();
             }
-           
         });
     }
 
@@ -218,13 +250,34 @@ var ReportModifier = function () {
             dom = new jsdom.JSDOM(data);
             jquery_ref = jquery(dom.window);
 
+            let head = jquery_ref('head');
             let body = jquery_ref('body');
+
+            head.append(`
+            <style>
+                #images table th {
+                    text-align: center;
+                    background-color: #065EC2;
+                    color: #ffffff;
+                }
+
+                #images table th code{
+                    color: #ffffff; 
+                    background-color: transparent; 
+                    border-radius: 0;
+                }
+            </style>
+            `);
+            
+
+
             var thead = body.find("#image-table").find("thead");
             var tbody = body.find("#image-table").find("tbody");
             thead.find("th:eq(0)").after("<th>File Name</th>");
             thead.find("th:last").after("<th>Asset ID</th>");
             thead.find("th:last").after("<th>Source</th>");
             thead.find("th:last").after("<th>Source File Number</th>");
+            thead.find("th:last").after("<th>Keywords</th>");
             thead.find("th:last").after("<th>Rights Type</th>");
             thead.find("th:last").after("<th>eProduct credit description and credit</th>");
 
@@ -319,6 +372,77 @@ var ReportModifier = function () {
             
             allImageListDoms = tbody.find("tr");
             nTotalImageCount = allImageListDoms.length;
+            
+            
+            xlws.column(1).setWidth(60);
+            xlws.column(2).setWidth(50);
+            xlws.column(3).setWidth(50);
+            xlws.column(4).setWidth(50);
+            xlws.column(5).setWidth(80);
+            xlws.column(6).setWidth(30);
+            xlws.column(7).setWidth(50);
+            xlws.column(8).setWidth(50);
+            xlws.column(9).setWidth(50);
+            xlws.column(10).setWidth(50);
+            xlws.column(11).setWidth(50);
+            xlws.column(12).setWidth(60);
+            xlws.column(13).setWidth(75);
+
+            xlws.row(1).setHeight(50);
+            
+            
+            xlws.cell(1, 1)
+                .string('Image')
+                .style(hStyle);
+
+            xlws.cell(1, 2)
+                .string('File Name')
+                .style(hStyle);
+            
+            xlws.cell(1, 3)
+                .string('alt')
+                .style(hStyle);
+            
+            xlws.cell(1, 4)
+                .string('aria-describedby')
+                .style(hStyle);
+                
+            xlws.cell(1, 5)
+                .string('figcaption')
+                .style(hStyle);
+
+            xlws.cell(1, 6)
+                .string('Location')
+                .style(hStyle);
+
+            xlws.cell(1, 7)
+                .string('Role')
+                .style(hStyle);
+
+            xlws.cell(1, 8)
+                .string('Asset ID')
+                .style(hStyle);
+
+            xlws.cell(1, 9)
+                .string('Source')
+                .style(hStyle);
+
+            xlws.cell(1, 10)
+                .string('Source File Number')
+                .style(hStyle);
+            
+            xlws.cell(1, 11)
+                .string('Keywords')
+                .style(hStyle);
+                
+            xlws.cell(1, 12)
+                .string('Rights Type')
+                .style(hStyle);
+
+            xlws.cell(1, 13)
+                .string('eProduct credit description and credit')
+                .style(hStyle);
+            
 
             processImageProperties();
             
@@ -326,7 +450,109 @@ var ReportModifier = function () {
 
     }
 
+
+    function addToWS(imageName, imagePath)
+    {
+        // console.log("addToWS> ",nProcessedCount,jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(1)").html())
+        console.log("Add image>>> ", imagePath)
+
+        
+
+
+        if (imagePath != "" && imagePath != undefined && imagePath != null)
+        {
+            
+            // xlws.addImage({
+            //     path: imagePath,
+            //     type: 'picture',
+            //     position: {
+            //     type: 'oneCellAnchor',
+            //     from: {
+            //         col: 1,
+            //         colOff: '0.5in',
+            //         row: (nProcessedCount+2),
+            //         rowOff: 0,
+            //     },
+            //     },
+            // });
+
+            xlws.addImage({
+                path: imagePath,
+                type: 'picture',
+                position: {
+                  type: 'twoCellAnchor',
+                  from: {
+                    col: 1,
+                    colOff: "1mm",
+                    row: (nProcessedCount+2),
+                    rowOff: "1mm"
+                  },
+                  to: {
+                    col: 1,
+                    colOff: "100mm",
+                    row: (nProcessedCount+2),
+                    rowOff: "100mm"
+                  }
+                }
+              });
+
+        }
+        
+        xlws.row((nProcessedCount+2)).setHeight(200);
+
+        xlws.cell((nProcessedCount+2), 2)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(1)").html())
+            .style(bStyle);
+        xlws.cell((nProcessedCount+2), 3)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(2)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 4)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(3)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 5)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(4)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 6)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(5)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 7)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(6)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 8)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(7)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 9)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(8)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 10)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(9)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 11)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(10)").html())
+            .style(bStyle);
+
+        xlws.cell((nProcessedCount+2), 12)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(11)").html())
+            .style(bStyle);
+        
+        xlws.cell((nProcessedCount+2), 13)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(12)").html())
+            .style(bStyle);
+
+        
+                
+    }
+
     function processImageProperties(){
+        console.log("Process>>>>>>>>>>>>>>> ",nProcessedCount, nTotalImageCount)
         if(nProcessedCount < nTotalImageCount){
             let imagePath = jquery_ref(jquery_ref(allImageListDoms[nProcessedCount])).find("td:eq(0)").find("img").attr("src");
             imagePath = "./reports/"+imagePath
@@ -364,63 +590,131 @@ var ReportModifier = function () {
             propertiesObj["AssetId"] = "N/A";
             propertiesObj["Artist"] = "N/A";
             propertiesObj["AuthorTitle"] = "N/A";
+            propertiesObj["Keywords"] = "N/A";
             propertiesObj["ImageDescription"] = "N/A";
             propertiesObj["Copyright"] = "N/A";
 
-           try {
-                new ExifImage({ image : imagePath }, function (error, exifData) {
-                    if (error){
-                        console.log("exifData error");
-                        checkXMPData(imageName, imagePath);
-                    }else{
-                        console.log("exifData> ",exifData)
-                        propertiesObj["AssetId"] = exifData["image"].AssetId? exifData["image"].AssetId : "N/A";
-                        propertiesObj["Artist"] = exifData["image"].Artist? exifData["image"].Artist : "N/A";
-                        propertiesObj["AuthorTitle"] = exifData["image"].AuthorTitle?exifData["image"].AuthorTitle:"N/A";
-                        propertiesObj["ImageDescription"] = exifData["image"].ImageDescription?exifData["image"].ImageDescription:"N/A";
-                        propertiesObj["Copyright"] = exifData["image"].Copyright?exifData["image"].Copyright:"N/A";
-
-                        checkXMPData(imageName, imagePath);
-                    }
-                });
-            } catch (error) {
-                console.log('exifData Error: ' + error.message);
-                checkXMPData(imageName, imagePath);
-            }
+            try {
+                console.log("ExifImage=========================")
+                 new ExifImage({ image : imagePath }, function (error, exifData) {
+                     if (error){
+                         console.log("exifData error");
+                         checkXMPData(imageName, imagePath);
+                     }else{
+                         console.log("exifData> ",exifData)
+                         propertiesObj["AssetId"] = exifData["image"].AssetId? exifData["image"].AssetId : "N/A";
+                         propertiesObj["Artist"] = exifData["image"].Artist? exifData["image"].Artist : "N/A";
+                         propertiesObj["AuthorTitle"] = exifData["image"].AuthorTitle?exifData["image"].AuthorTitle:"N/A";
+                         propertiesObj["Keywords"] = exifData["image"].Keywords?exifData["image"].Keywords:"N/A";
+                         propertiesObj["ImageDescription"] = exifData["image"].ImageDescription?exifData["image"].ImageDescription:"N/A";
+                         propertiesObj["Copyright"] = exifData["image"].Copyright?exifData["image"].Copyright:"N/A";
+ 
+                         checkXMPData(imageName, imagePath);
+                     }
+                 });
+             } catch (error) {
+                 console.log('exifData Error: ' + error.message);
+                 checkXMPData(imageName, imagePath);
+             }
+           
 
         }else{
             let file_output = "./reports/new-report.html";
             fs.writeFile(file_output, dom.serialize(), err => {
                 fs.writeFileSync("./reports/new-report.json", JSON.stringify(json_report));
+
+                xlwb.write('./reports/imagesreport.xlsx', function(err, stats) {
+                    if (err) {
+                        console.error(err);
+                    } else {
+                        console.log(stats); // Prints out an instance of a node.js fs.Stats object
+                    }
+                });
                 console.log('REPORT MODIFIED SUCCESSFULLY.');
             });
         }
     }
 
     function checkXMPData(imageName, imagePath) {
-        try {
-            xmpReader.fromFile(imagePath, (error, data) => {
-                if (error){
-                    console.log("data error");
-                    updateTableData(imageName);
-                }else{
-                    console.log("data> ",data)
-                    propertiesObj["AssetId"] = data.AssetId? data.AssetId : propertiesObj["AssetId"];
-                    propertiesObj["Artist"] = data.creator? data.creator : propertiesObj["Artist"];
-                    propertiesObj["AuthorTitle"] = data.title? data.title : propertiesObj["AuthorTitle"];
-                    propertiesObj["ImageDescription"] = data.description? data.description : propertiesObj["ImageDescription"];
-                    propertiesObj["Copyright"] = data.Copyright? data.Copyright : propertiesObj["Copyright"];
+        // try {
+            // xmpReader.fromFile(imagePath, (error, data) => {
+            //     if (error){
+            //         console.log("data error");
+            //         utfDecode(imageName);
+            //     }else{
+            //         console.log("data> ",data)
+            //         propertiesObj["AssetId"] = data.AssetId? data.title : propertiesObj["AssetId"];
+            //         propertiesObj["Artist"] = data.creator? data.creator : propertiesObj["Artist"];
+            //         propertiesObj["AuthorTitle"] = data.title? data.title : propertiesObj["AuthorTitle"];
+            //         propertiesObj["ImageDescription"] = data.description? data.description : propertiesObj["ImageDescription"];
+            //         propertiesObj["Copyright"] = data.Copyright? data.Copyright : propertiesObj["Copyright"];
 
-                    updateTableData(imageName);
-                }
-            });
-        } catch (error) {
-            console.log('data Error: ' + error.message);
-            updateTableData(imageName);
-        }
+            //         utfDecode(imageName);
+            //     }
+            console.log("XMP read file> ",nProcessedCount);
+            if (
+                imageName.toLowerCase().indexOf('.png') != -1 || 
+                imageName.toLowerCase().indexOf('.jpg') != -1 ||
+                imageName.toLowerCase().indexOf('.jpeg') != -1 || 
+                imageName.toLowerCase().indexOf('.tif') != -1 || 
+                imageName.toLowerCase().indexOf('.tiff') != -1
+            ) {
+                fs.readFile(imagePath, (err, fileBuffer) => {
+                    if (err) {
+                        console.error("Error while reading the file", err);
+                        utfDecode(imageName, imagePath);
+                    }else{
+                        try {
+                            console.log("read file nProcessedCount> ",nProcessedCount)
+                            const data = ExifReader.load(fileBuffer);
+                            // console.log("XMP>>> ",data)
+                            propertiesObj["AssetId"] = data.title? data.title.description : propertiesObj["AssetId"];
+                            propertiesObj["Artist"] = data.creator? data.creator.description : propertiesObj["Artist"];
+                            propertiesObj["AuthorTitle"] = data.AuthorsPosition? data.AuthorsPosition.description : propertiesObj["AuthorTitle"];
+                            propertiesObj["Keywords"] = data.Keywords? data.Keywords.description : propertiesObj["Keywords"];
+                            propertiesObj["ImageDescription"] = data.description? data.description.description : propertiesObj["ImageDescription"];
+                            propertiesObj["Copyright"] = data.rights? data.rights.description : propertiesObj["Copyright"];
+
+                            utfDecode(imageName, imagePath);
+                        } catch (error) {
+                            console.log('XMP read file Error: ' + error.message);
+                            utfDecode(imageName, imagePath);
+                        }
+                    }
+                });
+            }else{
+                utfDecode(imageName, imagePath);
+            }
+            
+            
+        // } catch (error) {
+        //     console.log('data Error: ' + error.message);
+        //     utfDecode(imageName);
+        // }
     }
 
-    function updateTableData(imageName) {
+    function utfDecode(imageName, imagePath) {
+        
+        console.log("utfDecode..........................")
+        try {
+            propertiesObj["AssetId"] = utf8.decode(propertiesObj["AssetId"]);
+            propertiesObj["Artist"] = utf8.decode(propertiesObj["Artist"]);
+            propertiesObj["AuthorTitle"] = utf8.decode(propertiesObj["AuthorTitle"]);
+            propertiesObj["Keywords"] = utf8.decode(propertiesObj["Keywords"]);
+            propertiesObj["ImageDescription"] = utf8.decode(propertiesObj["ImageDescription"]);
+            propertiesObj["Copyright"] = utf8.decode(propertiesObj["Copyright"]);
+        } catch (error) {
+            console.log('utfDecode Error: ' + error.message);
+        }
+        
+        
+        
+        
+
+        updateTableData(imageName, imagePath);
+    }
+
+    function updateTableData(imageName, imagePath) {
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(0)").after(`<td>${imageName}</td>`)
 
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["AssetId"]=="N/A"?"":"missing"}">${propertiesObj["AssetId"]}</td>`);
@@ -428,6 +722,8 @@ var ReportModifier = function () {
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["Artist"]=="N/A"?"":"missing"}">${propertiesObj["Artist"]}</td>`);
 
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["AuthorTitle"]=="N/A"?"":"missing"}">${propertiesObj["AuthorTitle"]}</td>`);
+        
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["Keywords"]=="N/A"?"":"missing"}">${propertiesObj["Keywords"]}</td>`);
 
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["ImageDescription"]=="N/A"?"":"missing"}">${propertiesObj["ImageDescription"]}</td>`);
 
@@ -437,6 +733,8 @@ var ReportModifier = function () {
         console.log("propertiesObj> ",propertiesObj);
 
         updateJSON(imageName);
+
+        addToWS(imageName, imagePath);
 
         nProcessedCount++;
         processImageProperties();
@@ -451,6 +749,7 @@ var ReportModifier = function () {
                     json_report["data"]["images"][i]["AssetId"] = propertiesObj.AssetId;
                     json_report["data"]["images"][i]["Artist"] = propertiesObj.Artist;
                     json_report["data"]["images"][i]["AuthorTitle"] = propertiesObj.AuthorTitle;
+                    json_report["data"]["images"][i]["Keywords"] = propertiesObj.Keywords;
                     json_report["data"]["images"][i]["ImageDescription"] = propertiesObj.ImageDescription;
                     json_report["data"]["images"][i]["Copyright"] = propertiesObj.Copyright;
                 }else{
@@ -458,6 +757,7 @@ var ReportModifier = function () {
                     json_report["data"]["images"][i]["AssetId"] = "N/A";
                     json_report["data"]["images"][i]["Artist"] = "N/A";
                     json_report["data"]["images"][i]["AuthorTitle"] = "N/A";
+                    json_report["data"]["images"][i]["Keywords"] = "N/A";
                     json_report["data"]["images"][i]["ImageDescription"] = "N/A";
                     json_report["data"]["images"][i]["Copyright"] = "N/A";
                 }
