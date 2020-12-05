@@ -8,6 +8,7 @@ var fsExtra = require('fs-extra');
 const utf8 = require('utf8');
 const ExifReader = require('exifreader');
 var xl = require('excel4node');
+var svg2img = require('svg2img');
 
 var ReportModifier = function () {
     var nProcessedCount = 0;
@@ -65,15 +66,9 @@ var ReportModifier = function () {
     
 
     function init() {
-        // // print process.argv
-        // process.argv.forEach(function (val, index, array) {
-        //     console.log(index + ': ' + val);
-        // });
         epubName = process.argv[2];
-        //console.log("epubName :: ",epubName);
 
         extractEpub();
-        //readTocFile();
     }
 
     function extractEpub(){
@@ -92,7 +87,6 @@ var ReportModifier = function () {
         fs.createReadStream(srcFile)
         .pipe(unzipper.Extract({ path: './input/extracted' }))
         .on('close', () => {
-            //console.log('Extract closed')
             readTocFile();
         });
 
@@ -107,7 +101,6 @@ var ReportModifier = function () {
             let allAnchors = $("body").find("a");
             allAnchors.each(function(){
                 let _href = $(this).attr("href");
-                //console.log(`_href = ${_href}`);
 
                 if(String(_href).indexOf(".xhtml")){
                     if(String(_href).indexOf(".xhtml#")){
@@ -134,7 +127,6 @@ var ReportModifier = function () {
             const $ = jquery(dom.window);
             let allImagesInXHTML = [];
             $("body").find("img").each(function(){
-                //allImages.push($(this).attr("src"));
                 let _src = $(this).attr("src");
                 let lastIndex = _src.lastIndexOf('/');
                 _src = _src.substr(lastIndex+1, _src.length);
@@ -148,10 +140,8 @@ var ReportModifier = function () {
 
 
             $("body").find("param").each(function(){
-                //allImages.push($(this).attr("src"));
                 let _value = $(this).attr("value");
                 if(String(_value).toLowerCase().indexOf(".json") != -1){
-                    //console.log(`_value = ${_value}`);
                     jsonsPath.push(_value);
                 }
             });
@@ -170,15 +160,11 @@ var ReportModifier = function () {
 
             });
 
-            //console.log("allImagesInJSONs :: ",allXHTMLInTOC[nTocFileCounter],allImagesInXHTML,allImagesInJSONs);
-
-
             if(nTocFileCounter < nTotalXHTML_IN_TOC-1){
                 nTocFileCounter++;
                 readASingleXhtmlFile();
             }else{
                 // All xhtml file read completed from toc.xhtml file
-                console.log("ALL DONE  >>>");
                 readJSON();
                 tableColumnEdit();
             }
@@ -210,7 +196,6 @@ var ReportModifier = function () {
                         let src = `./input/extracted/OPS/${_value}`;
                         let dest = `./reports/data/widgets_images/${imageName}`
                         fsExtra.copySync(src, dest);
-                        //console.log("partialPath,_value :: ",partialPath,_value);
                         all_images_in_json.push(imageName);
                     }
                 }
@@ -283,43 +268,6 @@ var ReportModifier = function () {
 
 
             // Insert all widgets images
-
-            //console.log("allImagesXHTML_WIDGET : ",allImagesXHTML_WIDGET);
-
-            /*
-
-            for(let i=0;i<allImagesXHTML_WIDGET.length;i++){
-
-                for(let j=0;j<allImagesXHTML_WIDGET[i]["JSON_IMAGES"].length;j++){
-                    //console.log("j",j)
-                    //tbody.empty();
-
-                    tbody.append(
-                        `
-                        <tr>
-                            <td class="image">
-                            <a href="data/widgets_images/${allImagesXHTML_WIDGET[i]["JSON_IMAGES"][j]}">
-                                <img src="data/widgets_images/${allImagesXHTML_WIDGET[i]["JSON_IMAGES"][j]}">
-                            </a>
-                            </td><td class="missing">N/A</td>
-        
-                            <td class="missing">N/A</td>
-        
-                            <td class="missing">N/A</td>
-        
-                            <td class="missing">N/A</td>
-        
-                            <td class="location">${allImagesXHTML_WIDGET[i]["XHTML_NAME_PATH"][1]}</td>
-                        </tr>
-                        `
-                    )
-
-                }
-
-            }
-
-            */
-
             let current_TRS = tbody.find("tr");
                 
                 for(let u=0;u<allImagesXHTML_WIDGET.length;u++){
@@ -363,7 +311,6 @@ var ReportModifier = function () {
                     }
 
                     if(!found){
-                        //console.log("ENTRY NOT FOUND IN EARLIER REPORT LISTING");
                         currentROWItem.parent().append(bottomTrs);
                     }
 
@@ -373,7 +320,8 @@ var ReportModifier = function () {
             allImageListDoms = tbody.find("tr");
             nTotalImageCount = allImageListDoms.length;
             
-            
+            console.log("Log processing started...");
+
             xlws.column(1).setWidth(60);
             xlws.column(2).setWidth(50);
             xlws.column(3).setWidth(50);
@@ -443,22 +391,42 @@ var ReportModifier = function () {
                 .string('eProduct credit description and credit')
                 .style(hStyle);
             
-
+            
             processImageProperties();
             
         });
-
     }
 
-
-    function addToWS(imageName, imagePath)
+    function convertToPng(imageName, imagePath, successCallback, errorCallback)
     {
-        // console.log("addToWS> ",nProcessedCount,jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(1)").html())
-        console.log("Add image>>> ", imagePath)
+        var newImgName = imageName.split(".svg")[0];
+        svg2img(
+            imagePath,
+            function(error, buffer) {
+                if (error)
+                {
+                    errorCallback("error");
+                }else{
+                    fs.writeFileSync('./input/extracted/'+newImgName+'.png', buffer);
+                    successCallback('./input/extracted/'+newImgName+'.png');
+                }
+        });
+    }
 
-        
+    function convertToPngWrapper(imageName, imagePath) {
+        return new Promise((resolve, reject) => {
+            convertToPng(imageName, imagePath, (successResponse) => {
+                resolve(successResponse);
+            }, (errorResponse) => {
+                reject(errorResponse)
+            });
+        });
+    }
+    
 
 
+    async function addToWS(imageName, imagePath)
+    {
         if (imagePath != "" && imagePath != undefined && imagePath != null)
         {
             
@@ -475,6 +443,15 @@ var ReportModifier = function () {
             //     },
             //     },
             // });
+
+            if (imagePath.toLowerCase().indexOf(".svg") != -1)
+            {
+                newImagePath = await convertToPngWrapper(imageName, imagePath);
+                if (newImagePath != "error")
+                {
+                    imagePath = newImagePath;
+                }
+            }
 
             xlws.addImage({
                 path: imagePath,
@@ -552,39 +529,13 @@ var ReportModifier = function () {
     }
 
     function processImageProperties(){
-        console.log("Process>>>>>>>>>>>>>>> ",nProcessedCount, nTotalImageCount)
         if(nProcessedCount < nTotalImageCount){
             let imagePath = jquery_ref(jquery_ref(allImageListDoms[nProcessedCount])).find("td:eq(0)").find("img").attr("src");
             imagePath = "./reports/"+imagePath
             let imageName = imagePath;
-            // let lastIndex = imageName.lastIndexOf('.');
-            // imageName = imageName.substr(0, lastIndex);
             imageName = imageName.split("/");
             imageName = String(imageName[imageName.length-1]).trim();
 
-
-            /*
-            XMP Reader:
-            {
-                "raw": {
-                    "MicrosoftPhoto:Rating": "50",
-                    "dc:title": "Title",
-                    "dc:description": "Title",
-                    "dc:creator": "Alexander Kuznetsov",
-                    "Iptc4xmpCore:Location": "New York",
-                    "MicrosoftPhoto:LastKeywordXMP": ["tag1", "tag2"],
-                    "MicrosoftPhoto:LastKeywordIPTC": ["tag1", "tag2"],
-                    "xmp:Rating": "3"
-                },
-                "rating": 3,
-                "title": "Title",
-                "description": "Title",
-                "creator": "Alexander Kuznetsov",
-                "location": "New York",
-                "keywords": ["tag1", "tag2"]
-            }
-            */
-            console.log("imageName>>>>>>>>>>> ",imageName)
             propertiesObj = new Object();
             propertiesObj["imageName"] = imageName;
             propertiesObj["AssetId"] = "N/A";
@@ -595,13 +546,10 @@ var ReportModifier = function () {
             propertiesObj["Copyright"] = "N/A";
 
             try {
-                console.log("ExifImage=========================")
                  new ExifImage({ image : imagePath }, function (error, exifData) {
                      if (error){
-                         console.log("exifData error");
                          checkXMPData(imageName, imagePath);
                      }else{
-                         console.log("exifData> ",exifData)
                          propertiesObj["AssetId"] = exifData["image"].AssetId? exifData["image"].AssetId : "N/A";
                          propertiesObj["Artist"] = exifData["image"].Artist? exifData["image"].Artist : "N/A";
                          propertiesObj["AuthorTitle"] = exifData["image"].AuthorTitle?exifData["image"].AuthorTitle:"N/A";
@@ -613,45 +561,29 @@ var ReportModifier = function () {
                      }
                  });
              } catch (error) {
-                 console.log('exifData Error: ' + error.message);
                  checkXMPData(imageName, imagePath);
              }
            
 
         }else{
             let file_output = "./reports/new-report.html";
+            console.log("HTML report compiled!");
             fs.writeFile(file_output, dom.serialize(), err => {
                 fs.writeFileSync("./reports/new-report.json", JSON.stringify(json_report));
-
+                console.log("JSON compiled!");
                 xlwb.write('./reports/imagesreport.xlsx', function(err, stats) {
                     if (err) {
-                        console.error(err);
+                        //console.error(err);
                     } else {
-                        console.log(stats); // Prints out an instance of a node.js fs.Stats object
+                        //console.log(stats); // Prints out an instance of a node.js fs.Stats object
+                        console.log("Excel report processing completed!");
                     }
                 });
-                console.log('REPORT MODIFIED SUCCESSFULLY.');
             });
         }
     }
 
     function checkXMPData(imageName, imagePath) {
-        // try {
-            // xmpReader.fromFile(imagePath, (error, data) => {
-            //     if (error){
-            //         console.log("data error");
-            //         utfDecode(imageName);
-            //     }else{
-            //         console.log("data> ",data)
-            //         propertiesObj["AssetId"] = data.AssetId? data.title : propertiesObj["AssetId"];
-            //         propertiesObj["Artist"] = data.creator? data.creator : propertiesObj["Artist"];
-            //         propertiesObj["AuthorTitle"] = data.title? data.title : propertiesObj["AuthorTitle"];
-            //         propertiesObj["ImageDescription"] = data.description? data.description : propertiesObj["ImageDescription"];
-            //         propertiesObj["Copyright"] = data.Copyright? data.Copyright : propertiesObj["Copyright"];
-
-            //         utfDecode(imageName);
-            //     }
-            console.log("XMP read file> ",nProcessedCount);
             if (
                 imageName.toLowerCase().indexOf('.png') != -1 || 
                 imageName.toLowerCase().indexOf('.jpg') != -1 ||
@@ -661,13 +593,10 @@ var ReportModifier = function () {
             ) {
                 fs.readFile(imagePath, (err, fileBuffer) => {
                     if (err) {
-                        console.error("Error while reading the file", err);
                         utfDecode(imageName, imagePath);
                     }else{
                         try {
-                            console.log("read file nProcessedCount> ",nProcessedCount)
                             const data = ExifReader.load(fileBuffer);
-                            // console.log("XMP>>> ",data)
                             propertiesObj["AssetId"] = data.title? data.title.description : propertiesObj["AssetId"];
                             propertiesObj["Artist"] = data.creator? data.creator.description : propertiesObj["Artist"];
                             propertiesObj["AuthorTitle"] = data.AuthorsPosition? data.AuthorsPosition.description : propertiesObj["AuthorTitle"];
@@ -677,7 +606,6 @@ var ReportModifier = function () {
 
                             utfDecode(imageName, imagePath);
                         } catch (error) {
-                            console.log('XMP read file Error: ' + error.message);
                             utfDecode(imageName, imagePath);
                         }
                     }
@@ -685,17 +613,9 @@ var ReportModifier = function () {
             }else{
                 utfDecode(imageName, imagePath);
             }
-            
-            
-        // } catch (error) {
-        //     console.log('data Error: ' + error.message);
-        //     utfDecode(imageName);
-        // }
     }
 
     function utfDecode(imageName, imagePath) {
-        
-        console.log("utfDecode..........................")
         try {
             propertiesObj["AssetId"] = utf8.decode(propertiesObj["AssetId"]);
             propertiesObj["Artist"] = utf8.decode(propertiesObj["Artist"]);
@@ -704,17 +624,13 @@ var ReportModifier = function () {
             propertiesObj["ImageDescription"] = utf8.decode(propertiesObj["ImageDescription"]);
             propertiesObj["Copyright"] = utf8.decode(propertiesObj["Copyright"]);
         } catch (error) {
-            console.log('utfDecode Error: ' + error.message);
+            //console.log('utfDecode Error: ' + error.message);
         }
         
-        
-        
-        
-
         updateTableData(imageName, imagePath);
     }
 
-    function updateTableData(imageName, imagePath) {
+    async function updateTableData(imageName, imagePath) {
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(0)").after(`<td>${imageName}</td>`)
 
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["AssetId"]=="N/A"?"":"missing"}">${propertiesObj["AssetId"]}</td>`);
@@ -729,12 +645,9 @@ var ReportModifier = function () {
 
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["Copyright"]=="N/A"?"":"missing"}">${propertiesObj["Copyright"]}</td>`);
 
-
-        console.log("propertiesObj> ",propertiesObj);
-
         updateJSON(imageName);
 
-        addToWS(imageName, imagePath);
+        await addToWS(imageName, imagePath);
 
         nProcessedCount++;
         processImageProperties();
@@ -777,8 +690,6 @@ var ReportModifier = function () {
 
 var reportModifier = new ReportModifier();
 reportModifier.init();
-
-
 
 
 
