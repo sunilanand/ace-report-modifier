@@ -31,7 +31,7 @@
     "watch": "^1.0.2"
   },
   "scripts": {
-    "start": "node clean.js && ace --outdir reports FILEPATH && node report-modify.js FILENAME",
+    "start": "node clean.js && ace --outdir reports $FILEPATH && node report-modify.js $FILENAME",
     "ace-report-modifier": "ace --outdir",
     "ace": "node ./packages/ace-cli/bin/ace.js",
     "clean": "yarn run clean-libs",
