@@ -18,6 +18,7 @@ var ReportModifier = function () {
     var jquery_ref;
     var json_report;
     var epubName;
+    var projectName;
 
     var allXHTMLInTOC = [];
     var allImagesXHTML_WIDGET = [];
@@ -67,6 +68,9 @@ var ReportModifier = function () {
 
     function init() {
         epubName = process.argv[2];
+
+        var extStartIndex = epubName.toLowerCase().indexOf(".epub");
+        projectName = epubName.substr(0, extStartIndex);
 
         extractEpub();
     }
@@ -251,20 +255,49 @@ var ReportModifier = function () {
                     background-color: transparent; 
                     border-radius: 0;
                 }
+                .btnDownloadReport {
+                    position: absolute;
+                    transition: background 400ms;
+                    color: #fff;
+                    background-color: #4e4e4e;
+                    padding: 0.75rem 1rem;
+                    font-family: 'Roboto', sans-serif;
+                    font-size: 1rem;
+                    outline: 0;
+                    border: 0;
+                    border-radius: 0.25rem;
+                    box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.3);
+                    cursor: pointer;
+                    right: 20px;
+                    margin-top: -10px;
+                }
+                .btnDownloadReport:hover {
+                    color: #fff;
+                    background-color: #656565;
+                }
+
+                .tab-content #images h2{
+                    display: inline-block;
+                }
             </style>
             `);
             
-
+            
 
             var thead = body.find("#image-table").find("thead");
             var tbody = body.find("#image-table").find("tbody");
             thead.find("th:eq(0)").after("<th>File Name</th>");
+            thead.find("th:last").after("<th>UUID</th>");
             thead.find("th:last").after("<th>Asset ID</th>");
             thead.find("th:last").after("<th>Source</th>");
             thead.find("th:last").after("<th>Source File Number</th>");
             thead.find("th:last").after("<th>Keywords</th>");
             thead.find("th:last").after("<th>Rights Type</th>");
             thead.find("th:last").after("<th>eProduct credit description and credit</th>");
+
+            //--Add download report button:
+            var downloadReportButton = '<a href="'+projectName+'_report.xlsx" download="'+projectName+'_report" class="btnDownloadReport">Download Report</a>';
+            body.find(".tab-content #images h2").after(downloadReportButton);
 
 
             // Insert all widgets images
@@ -333,8 +366,9 @@ var ReportModifier = function () {
             xlws.column(9).setWidth(50);
             xlws.column(10).setWidth(50);
             xlws.column(11).setWidth(50);
-            xlws.column(12).setWidth(60);
-            xlws.column(13).setWidth(75);
+            xlws.column(12).setWidth(50);
+            xlws.column(13).setWidth(60);
+            xlws.column(14).setWidth(75);
 
             xlws.row(1).setHeight(50);
             
@@ -368,26 +402,30 @@ var ReportModifier = function () {
                 .style(hStyle);
 
             xlws.cell(1, 8)
+                .string('UUID')
+                .style(hStyle);
+            
+            xlws.cell(1, 9)
                 .string('Asset ID')
                 .style(hStyle);
 
-            xlws.cell(1, 9)
+            xlws.cell(1, 10)
                 .string('Source')
                 .style(hStyle);
 
-            xlws.cell(1, 10)
+            xlws.cell(1, 11)
                 .string('Source File Number')
                 .style(hStyle);
             
-            xlws.cell(1, 11)
+            xlws.cell(1, 12)
                 .string('Keywords')
                 .style(hStyle);
                 
-            xlws.cell(1, 12)
+            xlws.cell(1, 13)
                 .string('Rights Type')
                 .style(hStyle);
 
-            xlws.cell(1, 13)
+            xlws.cell(1, 14)
                 .string('eProduct credit description and credit')
                 .style(hStyle);
             
@@ -399,21 +437,26 @@ var ReportModifier = function () {
 
     function convertToPng(imageName, imagePath, successCallback, errorCallback)
     {
+        console.log("convertToPng img SVG> ",imagePath)
         var newImgName = imageName.split(".svg")[0];
         svg2img(
             imagePath,
             function(error, buffer) {
                 if (error)
                 {
+                    //console.log("err> ",error)
                     errorCallback("error");
                 }else{
+                    //console.log("write> ",'./input/extracted/'+newImgName+'.png')
                     fs.writeFileSync('./input/extracted/'+newImgName+'.png', buffer);
+                    console.log("write success...")
                     successCallback('./input/extracted/'+newImgName+'.png');
                 }
         });
     }
 
     function convertToPngWrapper(imageName, imagePath) {
+        console.log("convertToPngWrapper img SVG> ",imagePath)
         return new Promise((resolve, reject) => {
             convertToPng(imageName, imagePath, (successResponse) => {
                 resolve(successResponse);
@@ -446,33 +489,41 @@ var ReportModifier = function () {
 
             if (imagePath.toLowerCase().indexOf(".svg") != -1)
             {
+                console.log("addToWS img SVG> ",imagePath)
                 newImagePath = await convertToPngWrapper(imageName, imagePath);
                 if (newImagePath != "error")
                 {
                     imagePath = newImagePath;
                 }
             }
-
-            xlws.addImage({
-                path: imagePath,
-                type: 'picture',
-                position: {
-                  type: 'twoCellAnchor',
-                  from: {
-                    col: 1,
-                    colOff: "1mm",
-                    row: (nProcessedCount+2),
-                    rowOff: "1mm"
-                  },
-                  to: {
-                    col: 1,
-                    colOff: "100mm",
-                    row: (nProcessedCount+2),
-                    rowOff: "100mm"
-                  }
-                }
-              });
-
+            
+            try{
+                xlws.addImage({
+                    path: imagePath,
+                    type: 'picture',
+                    position: {
+                      type: 'twoCellAnchor',
+                      from: {
+                        col: 1,
+                        colOff: "1mm",
+                        row: (nProcessedCount+2),
+                        rowOff: "1mm"
+                      },
+                      to: {
+                        col: 1,
+                        colOff: "100mm",
+                        row: (nProcessedCount+2),
+                        rowOff: "100mm"
+                      }
+                    }
+                  });
+            }catch(err){
+                console.log("Image corrupt>>> ", imagePath);
+                
+                xlws.cell((nProcessedCount+2), 1)
+                    .string("Corrupt image! Unable to load.")
+                    .style(bStyle);
+            }
         }
         
         xlws.row((nProcessedCount+2)).setHeight(200);
@@ -501,9 +552,9 @@ var ReportModifier = function () {
             .style(bStyle);
 
         xlws.cell((nProcessedCount+2), 8)
-            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(7)").html())
+            .string(getLastUUID(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(5)").html()))
             .style(bStyle);
-
+            
         xlws.cell((nProcessedCount+2), 9)
             .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(8)").html())
             .style(bStyle);
@@ -519,13 +570,21 @@ var ReportModifier = function () {
         xlws.cell((nProcessedCount+2), 12)
             .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(11)").html())
             .style(bStyle);
-        
+
         xlws.cell((nProcessedCount+2), 13)
             .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(12)").html())
             .style(bStyle);
-
         
-                
+        xlws.cell((nProcessedCount+2), 14)
+            .string(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(13)").html())
+            .style(bStyle);        
+    }
+
+    function getLastUUID(str)
+    {
+        var tmpSplUUID = str.split("data-uuid-");
+        var tmpSplUUIDstr = str.split("data-uuid-")[tmpSplUUID.length-1];
+        return tmpSplUUIDstr.split("]")[0]
     }
 
     function processImageProperties(){
@@ -538,6 +597,7 @@ var ReportModifier = function () {
 
             propertiesObj = new Object();
             propertiesObj["imageName"] = imageName;
+            propertiesObj["UUID"] = getLastUUID(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(5)").html());
             propertiesObj["AssetId"] = "N/A";
             propertiesObj["Artist"] = "N/A";
             propertiesObj["AuthorTitle"] = "N/A";
@@ -571,7 +631,7 @@ var ReportModifier = function () {
             fs.writeFile(file_output, dom.serialize(), err => {
                 fs.writeFileSync("./reports/new-report.json", JSON.stringify(json_report));
                 console.log("JSON compiled!");
-                xlwb.write('./reports/imagesreport.xlsx', function(err, stats) {
+                xlwb.write('./reports/'+projectName+'_report.xlsx', function(err, stats) {
                     if (err) {
                         //console.error(err);
                     } else {
@@ -633,6 +693,8 @@ var ReportModifier = function () {
     async function updateTableData(imageName, imagePath) {
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(0)").after(`<td>${imageName}</td>`)
 
+        jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["UUID"]=="N/A"?"":"missing"}">${propertiesObj["UUID"]}</td>`);
+
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["AssetId"]=="N/A"?"":"missing"}">${propertiesObj["AssetId"]}</td>`);
 
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["Artist"]=="N/A"?"":"missing"}">${propertiesObj["Artist"]}</td>`);
@@ -646,7 +708,7 @@ var ReportModifier = function () {
         jquery_ref(allImageListDoms[nProcessedCount]).find("td:last").after(`<td class="${propertiesObj["Copyright"]=="N/A"?"":"missing"}">${propertiesObj["Copyright"]}</td>`);
 
         updateJSON(imageName);
-
+        
         await addToWS(imageName, imagePath);
 
         nProcessedCount++;
@@ -659,6 +721,7 @@ var ReportModifier = function () {
                 
                 if (imageName.indexOf('.svg') == -1 && imageName.indexOf('.jpg') == -1 && imageName.indexOf('.jpeg') == -1) {
                     json_report["data"]["images"][i]["imageName"] = propertiesObj.imageName;
+                    json_report["data"]["images"][i]["UUID"] = propertiesObj.UUID;
                     json_report["data"]["images"][i]["AssetId"] = propertiesObj.AssetId;
                     json_report["data"]["images"][i]["Artist"] = propertiesObj.Artist;
                     json_report["data"]["images"][i]["AuthorTitle"] = propertiesObj.AuthorTitle;
@@ -667,6 +730,7 @@ var ReportModifier = function () {
                     json_report["data"]["images"][i]["Copyright"] = propertiesObj.Copyright;
                 }else{
                     json_report["data"]["images"][i]["imageName"] = imageName;
+                    json_report["data"]["images"][i]["UUID"] = "N/A";
                     json_report["data"]["images"][i]["AssetId"] = "N/A";
                     json_report["data"]["images"][i]["Artist"] = "N/A";
                     json_report["data"]["images"][i]["AuthorTitle"] = "N/A";
