@@ -47,7 +47,6 @@ var ReportModifier = function () {
         border: {
             outline: true
         }
-        // numberFormat: '$#,##0.00; ($#,##0.00); -',
     });
 
     var bStyle = xlwb.createStyle({
@@ -62,7 +61,6 @@ var ReportModifier = function () {
         border: {
             outline: true
         }
-        // numberFormat: '$#,##0.00; ($#,##0.00); -',
     });
     
 
@@ -80,11 +78,8 @@ var ReportModifier = function () {
         utils.deleteDirectory("./input/extracted");
         utils.createDirectory("./input/extracted");
 
-
         utils.deleteDirectory("./reports/data/widgets_images");
         utils.createDirectory("./reports/data/widgets_images");
-
-        
 
         var srcFile = `./input/${epubName}`;
 
@@ -210,10 +205,7 @@ var ReportModifier = function () {
 
         }
         return all_images_in_json;
-
     }
-
-    
 
     function getKeyValues(data) {
         var q = [];
@@ -444,10 +436,8 @@ var ReportModifier = function () {
             function(error, buffer) {
                 if (error)
                 {
-                    //console.log("err> ",error)
                     errorCallback("error");
                 }else{
-                    //console.log("write> ",'./input/extracted/'+newImgName+'.png')
                     fs.writeFileSync('./input/extracted/'+newImgName+'.png', buffer);
                     console.log("write success...")
                     successCallback('./input/extracted/'+newImgName+'.png');
@@ -466,8 +456,6 @@ var ReportModifier = function () {
         });
     }
     
-
-
     async function addToWS(imageName, imagePath)
     {
         if (imagePath != "" && imagePath != undefined && imagePath != null)
@@ -597,7 +585,7 @@ var ReportModifier = function () {
 
             propertiesObj = new Object();
             propertiesObj["imageName"] = imageName;
-            propertiesObj["UUID"] = getLastUUID(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(5)").html());
+            propertiesObj["UUID"] = getLastUUID(jquery_ref(allImageListDoms[nProcessedCount]).find("td:eq(4)").html());
             propertiesObj["AssetId"] = "N/A";
             propertiesObj["Artist"] = "N/A";
             propertiesObj["AuthorTitle"] = "N/A";
