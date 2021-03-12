@@ -19,6 +19,7 @@ var ReportModifier = function () {
     var json_report;
     var epubName;
     var projectName;
+    var tocHTML;
 
     var allXHTMLInTOC = [];
     var allImagesXHTML_WIDGET = [];
@@ -98,9 +99,10 @@ var ReportModifier = function () {
             const dom = new jsdom.JSDOM(data);
             const $ = jquery(dom.window);
             let allAnchors = $("body").find("a");
+            tocHTML = $("body").find("nav").html();
+            //tocHTML = JSON.stringify(tocHTML);
             allAnchors.each(function(){
                 let _href = $(this).attr("href");
-
                 if(String(_href).indexOf(".xhtml")){
                     if(String(_href).indexOf(".xhtml#")){
                         let _finalXHTML = _href.split("#")[0];
@@ -706,8 +708,7 @@ var ReportModifier = function () {
     function updateJSON(imageName){
         for(let i=0;i<json_report["data"]["images"].length;i++){
             if(json_report["data"]["images"][i]["src"].indexOf(imageName) !== -1){
-                
-                if (imageName.indexOf('.svg') == -1 && imageName.indexOf('.jpg') == -1 && imageName.indexOf('.jpeg') == -1) {
+                if (imageName.toLowerCase().indexOf('.jpg') == -1 || imageName.toLowerCase().indexOf('.jpeg') == -1) {
                     json_report["data"]["images"][i]["imageName"] = propertiesObj.imageName;
                     json_report["data"]["images"][i]["UUID"] = propertiesObj.UUID;
                     json_report["data"]["images"][i]["AssetId"] = propertiesObj.AssetId;
@@ -728,6 +729,7 @@ var ReportModifier = function () {
                 }
             }
         }
+        json_report["toc-html"] = tocHTML;
     }
 
     function readJSON(){
