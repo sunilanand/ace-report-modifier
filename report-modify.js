@@ -8,7 +8,8 @@ var fsExtra = require('fs-extra');
 const utf8 = require('utf8');
 const ExifReader = require('exifreader');
 var xl = require('excel4node');
-var svg2img = require('svg2img');
+// var svg2img = require('svg2img');
+const sharp = require("sharp")
 
 var ReportModifier = function () {
     var nProcessedCount = 0;
@@ -433,7 +434,7 @@ var ReportModifier = function () {
     {
         console.log("convertToPng img SVG> ",imagePath)
         var newImgName = imageName.split(".svg")[0];
-        svg2img(
+        /*svg2img(
             imagePath,
             function(error, buffer) {
                 if (error)
@@ -444,7 +445,18 @@ var ReportModifier = function () {
                     console.log("write success...")
                     successCallback('./input/extracted/'+newImgName+'.png');
                 }
-        });
+        });*/
+
+        sharp(imagePath)
+            .png()
+            .toFile('./input/extracted/'+newImgName+'.jpg')
+            .then(function(info) {
+                console.log(info);
+                successCallback('./input/extracted/'+newImgName+'.jpg');
+            })
+            .catch(function(err) {
+                errorCallback("error");
+            })
     }
 
     function convertToPngWrapper(imageName, imagePath) {
